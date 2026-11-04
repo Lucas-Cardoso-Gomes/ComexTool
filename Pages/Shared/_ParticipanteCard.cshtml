@@ -1,0 +1,15 @@
+@model ComexTool.Models.ParticipanteInfo
+
+@if (Model != null)
+{
+    @await Html.PartialAsync("_FieldRow", ("Razão Social", Model.RazaoSocial))
+    @await Html.PartialAsync("_FieldRow", ("CNPJ", Model.CNPJ))
+    @await Html.PartialAsync("_FieldRow", ("Inscrição Estadual", Model.InscricaoEstadual))
+    @await Html.PartialAsync("_FieldRow", ("Identificação Fiscal (RUT/Tax ID)", Model.IdentificacaoFiscal))
+    @await Html.PartialAsync("_FieldRow", ("Endereço", Model.Endereco))
+    @await Html.PartialAsync("_FieldRow", ("Cidade / UF", $"{Model.Cidade} {Model.Estado}".Trim()))
+    @await Html.PartialAsync("_FieldRow", ("País", Model.Pais))
+    @await Html.PartialAsync("_FieldRow", ("CEP / Zip", Model.CEP))
+    @await Html.PartialAsync("_FieldRow", ("Telefone", Model.Telefone))
+    @await Html.PartialAsync("_FieldRow", ("E-mail", Model.Email))
+}

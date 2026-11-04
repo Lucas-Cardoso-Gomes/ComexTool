@@ -1,0 +1,63 @@
+@page
+@model ComexTool.Pages.UploadModel
+@{
+    ViewData["Title"] = "Upload de Documentos COMEX";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h3 class="card-title mb-2">
+                    <i class="bi bi-cloud-arrow-up"></i> Upload de Documentos COMEX
+                </h3>
+                <p class="text-muted small mb-4">
+                    Envie um ou mais arquivos (PDF ou imagem). O sistema irá <strong>analisar automaticamente</strong>
+                    e extrair os dados relevantes: NCM, Incoterm, dados do exportador/importador, valores, pesos, e muito mais.
+                </p>
+
+                @if (!string.IsNullOrEmpty(Model.Message))
+                {
+                    <div class="alert @(Model.AlertClass ?? "alert-info") alert-dismissible fade show" role="alert">
+                        @Html.Raw(Model.Message)
+                    </div>
+                }
+
+                <form asp-page-handler="Upload" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tipo de Documento <span class="text-danger">*</span></label>
+                        <select asp-for="Type" class="form-select" required>
+                            <option value="">Selecione o tipo...</option>
+                            @foreach (var t in Enum.GetValues<ComexTool.Models.DocumentType>())
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Arquivos (PDF ou Imagem) <span class="text-danger">*</span></label>
+                        <input asp-for="Files" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" required multiple />
+                        <div class="form-text">Pode selecionar vários arquivos de uma vez. Formatos: PDF, PNG, JPG, TIFF.</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <span class="spinner-border spinner-border-sm d-none" id="uploadSpinner"></span>
+                            Enviar e Analisar
+                        </button>
+                        <a asp-page="/Documents" class="btn btn-outline-secondary">Ver Documentos</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.querySelector('form').addEventListener('submit', function() {
+    document.getElementById('uploadSpinner').classList.remove('d-none');
+});
+</script>
+}

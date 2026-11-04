@@ -1,0 +1,12 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">ComexTool</h1>
+    <p>Ferramenta para upload e consulta de documentos COMEX.</p>
+    <a class="btn btn-primary m-2" asp-page="/Upload">Upload de Documento</a>
+    <a class="btn btn-secondary m-2" asp-page="/Documents">Lista de Documentos</a>
+</div>

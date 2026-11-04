@@ -1,0 +1,14 @@
+@model (string Label, string? Value)
+<div class="row mb-1">
+    <div class="col-5 text-muted small">@Model.Label</div>
+    <div class="col-7">
+        @if (!string.IsNullOrWhiteSpace(Model.Value))
+        {
+            <span class="fw-semibold">@Model.Value</span>
+        }
+        else
+        {
+            <span class="text-muted fst-italic small">Não identificado</span>
+        }
+    </div>
+</div>
