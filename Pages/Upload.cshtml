@@ -1,63 +1,237 @@
 @page
 @model ComexTool.Pages.UploadModel
 @{
-    ViewData["Title"] = "Upload de Documentos COMEX";
+    ViewData["Title"] = "Upload e Análise COMEX";
 }
 
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-lg-10">
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
-                <h3 class="card-title mb-2">
-                    <i class="bi bi-cloud-arrow-up"></i> Upload de Documentos COMEX
-                </h3>
-                <p class="text-muted small mb-4">
-                    Envie um ou mais arquivos (PDF ou imagem). O sistema irá <strong>analisar automaticamente</strong>
-                    e extrair os dados relevantes: NCM, Incoterm, dados do exportador/importador, valores, pesos, e muito mais.
-                </p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h3 class="card-title mb-1">
+                            <i class="bi bi-cloud-arrow-up"></i> Upload e Análise de Documentos COMEX
+                        </h3>
+                        <p class="text-muted small mb-0">
+                            Importe pastas inteiras ou arquivos avulsos. O sistema faz a <strong>classificação automática</strong> e a <strong>análise comparativa cruzada</strong>.
+                        </p>
+                    </div>
+                </div>
 
                 @if (!string.IsNullOrEmpty(Model.Message))
                 {
                     <div class="alert @(Model.AlertClass ?? "alert-info") alert-dismissible fade show" role="alert">
                         @Html.Raw(Model.Message)
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
 
-                <form asp-page-handler="Upload" method="post" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tipo de Documento <span class="text-danger">*</span></label>
-                        <select asp-for="Type" class="form-select" required>
-                            <option value="">Selecione o tipo...</option>
-                            @foreach (var t in Enum.GetValues<ComexTool.Models.DocumentType>())
-                            {
-                                <option value="@t">@t</option>
-                            }
-                        </select>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">Arquivos (PDF ou Imagem) <span class="text-danger">*</span></label>
-                        <input asp-for="Files" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" required multiple />
-                        <div class="form-text">Pode selecionar vários arquivos de uma vez. Formatos: PDF, PNG, JPG, TIFF.</div>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary px-4">
-                            <span class="spinner-border spinner-border-sm d-none" id="uploadSpinner"></span>
-                            Enviar e Analisar
+                @* ABAS: POR PASTA (NOVO), POR ARQUIVOS SEPARADOS, INDIVIDUAL *@
+                <ul class="nav nav-pills mb-4 nav-justified" id="uploadTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold" id="pasta-tab" data-bs-toggle="pill" data-bs-target="#pasta-pane" type="button" role="tab">
+                            📁 Anexação por Pasta Inteira (Recomendado)
                         </button>
-                        <a asp-page="/Documents" class="btn btn-outline-secondary">Ver Documentos</a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" id="processo-tab" data-bs-toggle="pill" data-bs-target="#processo-pane" type="button" role="tab">
+                            📂 Upload Manual por Tipos de Doc
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" id="individual-tab" data-bs-toggle="pill" data-bs-target="#individual-pane" type="button" role="tab">
+                            📄 Documento Avulso Individual
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="uploadTabContent">
+
+                    @* ================= TAB 1: POR PASTA INTEIRA ================= *@
+                    <div class="tab-pane fade show active" id="pasta-pane" role="tabpanel">
+                        <form asp-page-handler="FolderUpload" method="post" enctype="multipart/form-data">
+                            
+                            <div class="alert alert-primary d-flex align-items-center gap-2 mb-4" role="alert">
+                                <i class="bi bi-info-circle-fill fs-4"></i>
+                                <div>
+                                    <strong>Importação Inteligente de Pasta:</strong> Selecione a pasta do processo ou informe o caminho dela no disco. O sistema lerá todos os arquivos, <strong>identificará automaticamente o tipo de cada um</strong> (Fatura, CRT, NF-e, Packing List, DUE, CO, etc.), extrairá todos os dados e gerará o comparativo cruzado.
+                                </div>
+                            </div>
+
+                            <div class="bg-light p-3 rounded mb-4">
+                                <h5 class="fw-bold mb-3 text-primary">1. Identificação do Processo (Opcional)</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Número do Processo / Nome</label>
+                                        <input asp-for="NumeroProcesso" class="form-control" placeholder="Ex: 0110958E26 - CH (ou deixe em branco para usar o nome da pasta)" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Ou vincular a Processo Existente</label>
+                                        <select asp-for="ProcessoExistenteId" class="form-select">
+                                            <option value="">-- Criar Novo Processo com o nome da Pasta --</option>
+                                            @foreach (var proc in Model.ProcessosExistentes)
+                                            {
+                                                <option value="@proc.Id">@proc.NumeroProcesso (@proc.Documentos.Count docs)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Descrição / Observações</label>
+                                        <input asp-for="DescricaoProcesso" class="form-control" placeholder="Ex: Processo de Exportação para o Chile - Margarina Qualy" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card h-100 border border-primary p-3 bg-white">
+                                        <h6 class="fw-bold text-primary mb-2">
+                                            <i class="bi bi-folder-symlink"></i> Opção A: Caminho da Pasta no Computador
+                                        </h6>
+                                        <p class="text-muted small mb-2">Cole o caminho completo da pasta onde estão os PDFs (ex: <code>c:\Users\lucas.cardoso\Downloads\0110958E26 - CH</code>).</p>
+                                        <input asp-for="LocalFolderPath" class="form-control" placeholder="Ex: C:\Users\lucas.cardoso\Downloads\0110958E26 - CH" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3 bg-white">
+                                        <h6 class="fw-bold text-dark mb-2">
+                                            <i class="bi bi-folder-check"></i> Opção B: Selecionar Pasta no Navegador
+                                        </h6>
+                                        <p class="text-muted small mb-2">Clique para abrir o explorador e selecionar uma pasta inteira do seu dispositivo.</p>
+                                        <input asp-for="FolderFiles" type="file" class="form-control" webkitdirectory directory multiple />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                                    🚀 Ler Pasta, Identificar Documentos e Analisar Processo
+                                </button>
+                                <a asp-page="/Processes" class="btn btn-outline-secondary">Ver Processos</a>
+                            </div>
+                        </form>
                     </div>
-                </form>
+
+                    @* ================= TAB 2: POR SELEÇÃO ESPECÍFICA ================= *@
+                    <div class="tab-pane fade" id="processo-pane" role="tabpanel">
+                        <form asp-page-handler="ProcessUpload" method="post" enctype="multipart/form-data">
+                            
+                            <div class="bg-light p-3 rounded mb-4">
+                                <h5 class="fw-bold mb-3 text-primary">1. Identificação do Processo</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Número do Processo / Referência</label>
+                                        <input asp-for="NumeroProcesso" class="form-control" placeholder="Ex: EXP-2026-0042 ou PROC-CHILE-01" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Ou vincular a Processo Existente</label>
+                                        <select asp-for="ProcessoExistenteId" class="form-select">
+                                            <option value="">-- Criar Novo Processo --</option>
+                                            @foreach (var proc in Model.ProcessosExistentes)
+                                            {
+                                                <option value="@proc.Id">@proc.NumeroProcesso (@proc.Documentos.Count docs)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h5 class="fw-bold mb-3 text-primary">2. Anexar por Tipo de Documento</h5>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-file-earmark-text text-primary"></i> Fatura Comercial</label>
+                                        <input asp-for="Faturas" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-box-seam text-secondary"></i> Packing List / Romaneio</label>
+                                        <input asp-for="PackingLists" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-receipt text-success"></i> Nota Fiscal Eletrônica (NF-e)</label>
+                                        <input asp-for="NotasFiscais" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-truck text-warning"></i> CRT (Conhecimento de Transporte)</label>
+                                        <input asp-for="CRTs" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-patch-check text-info"></i> Certificado de Origem (ACE 35)</label>
+                                        <input asp-for="CertificadosOrigem" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-truck-flatbed text-dark"></i> MIC / DTA</label>
+                                        <input asp-for="MIC_DTAs" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-shield-check text-danger"></i> CSI / Certificado Sanitário</label>
+                                        <input asp-for="CSIs" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border p-3">
+                                        <label class="form-label fw-bold mb-1"><i class="bi bi-file-earmark-code text-primary"></i> DU-E</label>
+                                        <input asp-for="DUEs" type="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.tif" multiple />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                                    Enviar e Analisar Processo
+                                </button>
+                                <a asp-page="/Processes" class="btn btn-outline-secondary">Ver Processos</a>
+                            </div>
+                        </form>
+                    </div>
+
+                    @* ================= TAB 3: INDIVIDUAL ================= *@
+                    <div class="tab-pane fade" id="individual-pane" role="tabpanel">
+                        <form asp-page-handler="IndividualUpload" method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Tipo do Documento <span class="text-danger">*</span></label>
+                                <select asp-for="IndividualType" class="form-select" required>
+                                    <option value="">Selecione o tipo...</option>
+                                    @foreach (var t in Enum.GetValues<ComexTool.Models.DocumentType>())
+                                    {
+                                        <option value="@t">@t</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Arquivos (PDF ou Imagem) <span class="text-danger">*</span></label>
+                                <input asp-for="IndividualFiles" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" required multiple />
+                                <div class="form-text">Pode selecionar um ou mais arquivos de mesmo tipo. Formatos: PDF, PNG, JPG, TIFF.</div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary px-4">
+                                    Enviar e Analisar Individualmente
+                                </button>
+                                <a asp-page="/Documents" class="btn btn-outline-secondary">Ver Documentos</a>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+
             </div>
         </div>
     </div>
 </div>
-
-@section Scripts {
-<script>
-document.querySelector('form').addEventListener('submit', function() {
-    document.getElementById('uploadSpinner').classList.remove('d-none');
-});
-</script>
-}

@@ -1,0 +1,85 @@
+@page
+@model ComexTool.Pages.ProcessesModel
+@{
+    ViewData["Title"] = "Processos de Comércio Exterior";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Processos COMEX</h2>
+        <span class="text-muted small">Gerencie operações completas e faça a análise comparativa cruzada de documentos</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/Documents" class="btn btn-outline-secondary">📄 Documentos Individuais</a>
+        <a asp-page="/Upload" class="btn btn-primary">+ Novo Upload / Importar Pasta</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    @foreach (var proc in Model.Processos)
+    {
+        var docCount = proc.Documentos.Count;
+        var exportador = proc.Documentos.Select(d => d.ExtractedData?.Exportador?.RazaoSocial).FirstOrDefault(s => !string.IsNullOrEmpty(s));
+        var importador = proc.Documentos.Select(d => d.ExtractedData?.Importador?.RazaoSocial).FirstOrDefault(s => !string.IsNullOrEmpty(s));
+        var valorTotal = proc.Documentos.Select(d => d.ExtractedData?.ValorTotal).FirstOrDefault(s => !string.IsNullOrEmpty(s));
+        var moeda = proc.Documentos.Select(d => d.ExtractedData?.Moeda).FirstOrDefault(s => !string.IsNullOrEmpty(s)) ?? "USD";
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 border-top border-4 border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0 fw-bold text-primary">
+                            <i class="bi bi-folder2-open"></i> @proc.NumeroProcesso
+                        </h5>
+                        <span class="badge bg-light text-dark border">@docCount docs</span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(proc.Descricao))
+                    {
+                        <p class="text-muted small mb-2 text-truncate">@proc.Descricao</p>
+                    }
+
+                    <div class="small bg-light p-2 rounded mb-3">
+                        <div class="text-truncate"><strong>Exportador:</strong> @(exportador ?? "—")</div>
+                        <div class="text-truncate"><strong>Importador:</strong> @(importador ?? "—")</div>
+                        <div><strong>Valor:</strong> @(valorTotal != null ? $"{moeda} {valorTotal}" : "—")</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="small text-muted d-block mb-1">Documentos do Processo:</span>
+                        <div class="d-flex flex-wrap gap-1">
+                            @foreach (var doc in proc.Documentos)
+                            {
+                                <span class="badge bg-secondary-subtle text-dark border" title="@doc.FileName">
+                                    @doc.Type
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                    <div class="d-flex gap-2">
+                        <a asp-page="/ProcessDetail" asp-route-id="@proc.Id" class="btn btn-outline-primary btn-sm flex-grow-1">
+                            📊 Ver Análise Cruzada
+                        </a>
+                        <form method="post" asp-page-handler="DeleteProcess" asp-route-id="@proc.Id" onsubmit="return confirm('Tem certeza que deseja apagar este processo e todos os seus documentos?');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Apagar Processo">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Processos.Any())
+{
+    <div class="text-center p-5 bg-light rounded mt-3">
+        <h4 class="text-muted">Nenhum processo cadastrado ainda</h4>
+        <p class="text-muted small">Crie seu primeiro processo fazendo o upload de arquivos ou selecionando uma pasta inteira.</p>
+        <a asp-page="/Upload" class="btn btn-primary">Iniciar Processo e Fazer Upload</a>
+    </div>
+}

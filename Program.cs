@@ -20,6 +20,7 @@ builder.Services.AddDbContext<ComexDbContext>(options =>
 // Register OCR service (stub implementation) and Extractor
 builder.Services.AddSingleton<TesseractOcrService>();
 builder.Services.AddSingleton<ComexDocumentExtractor>();
+builder.Services.AddScoped<ProcessComparisonService>();
 
 // Configure client‑certificate authentication
 // builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Certificate.CertificateAuthenticationDefaults.AuthenticationScheme)

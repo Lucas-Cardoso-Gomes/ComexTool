@@ -1,0 +1,276 @@
+@page "{id:guid}"
+@model ComexTool.Pages.ProcessDetailModel
+@{
+    ViewData["Title"] = $"Processo {Model.Processo?.NumeroProcesso} - Comparativo";
+    var proc = Model.Processo!;
+    var comp = Model.Comparison;
+    var docs = proc.Documentos.OrderBy(d => d.Type).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h2 class="mb-0">📁 Processo: <span class="text-primary">@proc.NumeroProcesso</span></h2>
+            @if (comp != null && comp.Divergentes > 0)
+            {
+                <span class="badge bg-danger">@comp.Divergentes Divergência(s)</span>
+            }
+            else if (comp != null && comp.Conformes > 0)
+            {
+                <span class="badge bg-success">Conforme</span>
+            }
+        </div>
+        <span class="text-muted small">Criado em @proc.CriadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm") | @docs.Count documento(s) associado(s)</span>
+    </div>
+    <div class="d-flex gap-2">
+        @* Botão Reanalisar Todo o Processo *@
+        <form method="post" asp-page-handler="ReanalyzeAll" asp-route-id="@proc.Id" class="d-inline">
+            <button type="submit" class="btn btn-outline-success" title="Reexecuta a extração em todos os documentos deste processo com os filtros atualizados">
+                <i class="bi bi-arrow-repeat"></i> Reanalisar Todos os Documentos
+            </button>
+        </form>
+
+        @* Botão Anexar *@
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddDoc">
+            <i class="bi bi-plus-circle"></i> + Anexar Documento
+        </button>
+
+        @* Botão Excluir Processo *@
+        <form method="post" asp-page-handler="DeleteProcess" asp-route-id="@proc.Id" class="d-inline" onsubmit="return confirm('ATENÇÃO: Deseja apagar este PROCESSO INTEIRO e todos os seus documentos?');">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash"></i> Apagar Processo
+            </button>
+        </form>
+
+        <a asp-page="/Processes" class="btn btn-outline-secondary">Voltar</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.AlertClass ?? "alert-info") alert-dismissible fade show" role="alert">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@* ============ RESUMO EXECUTIVO DE CONFORMIDADE ============ *@
+@if (comp != null && comp.TotalCamposAnalisados > 0)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white p-3 text-center">
+                <div class="fs-3 fw-bold">@comp.TotalCamposAnalisados</div>
+                <div class="small">Campos Analisados</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white p-3 text-center">
+                <div class="fs-3 fw-bold">@comp.Conformes</div>
+                <div class="small">Campos Conformes (100% Batem)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-danger text-white p-3 text-center">
+                <div class="fs-3 fw-bold">@comp.Divergentes</div>
+                <div class="small">Divergências Detectadas</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-dark p-3 text-center">
+                <div class="fs-3 fw-bold">@comp.Alertas</div>
+                <div class="small">Presentes em Apenas 1 Doc</div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ============ DOCUMENTOS DO PROCESSO ============ *@
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+        <span>📄 Documentos Analisados neste Processo (@docs.Count)</span>
+        <small class="text-muted">Ações rápidas para análise individual, download ou exclusão</small>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tipo de Documento</th>
+                        <th>Nome do Arquivo</th>
+                        <th>Nº / ID Doc</th>
+                        <th>Valor Extraído</th>
+                        <th>Peso Líquido</th>
+                        <th>Status Análise</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var d in docs)
+                {
+                    var data = d.ExtractedData;
+                    <tr>
+                        <td><span class="badge bg-secondary">@d.Type</span></td>
+                        <td class="fw-semibold">@d.FileName</td>
+                        <td>@(data?.NumeroDocumento ?? data?.Nfe?.NumeroNF ?? data?.FaturaComercial?.NumeroFatura ?? data?.Crt?.NumeroCRT ?? data?.Due?.NumeroDUE ?? "—")</td>
+                        <td>@(data?.ValorTotal != null ? $"{data.Moeda ?? ""} {data.ValorTotal}" : "—")</td>
+                        <td>@(data?.PesoLiquido != null ? $"{data.PesoLiquido} kg" : "—")</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(d.ExtractedText))
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Extraído com Sucesso</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Sem texto (OCR)</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a asp-page="/DocumentDetail" asp-route-id="@d.Id" class="btn btn-sm btn-outline-primary me-1" title="Ver Análise Individual e Campos">
+                                🔍 Ver Análise
+                            </a>
+                            <a href="/api/documents/download/@d.Id" class="btn btn-sm btn-outline-secondary me-1" download>
+                                Download
+                            </a>
+                            <form method="post" asp-page-handler="DeleteDocument" asp-route-id="@proc.Id" asp-route-documentId="@d.Id" class="d-inline" onsubmit="return confirm('Remover este documento do processo?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir este documento">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ============ MATRIZ DE COMPARAÇÃO CRUZADA ============ *@
+@if (comp != null && comp.Itens.Count > 0)
+{
+    var categorias = comp.Itens.GroupBy(i => i.Categoria).ToList();
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">🔍 Matriz de Comparação e Auditoria Cruzada de Documentos</h5>
+            <span class="badge bg-light text-dark">Auditoria Automática</span>
+        </div>
+        <div class="card-body p-0">
+            @foreach (var cat in categorias)
+            {
+                <div class="p-2 bg-light border-bottom fw-bold text-uppercase small text-secondary">
+                    @cat.Key
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle mb-0 font-monospace-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 25%;">Campo Comparado</th>
+                                <th style="width: 15%;">Status / Diagnóstico</th>
+                                @foreach (var d in docs)
+                                {
+                                    <th class="text-center">
+                                        <div class="fw-bold text-dark">@d.Type</div>
+                                        <div class="small text-muted fw-normal text-truncate" style="max-width: 160px;">@d.FileName</div>
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in cat)
+                        {
+                            var rowClass = item.Status switch
+                            {
+                                ComexTool.Services.ComparisonSeverity.Danger => "table-danger",
+                                ComexTool.Services.ComparisonSeverity.Success => "",
+                                _ => ""
+                            };
+
+                            <tr class="@rowClass">
+                                <td class="fw-semibold">@item.Campo</td>
+                                <td>
+                                    @if (item.Status == ComexTool.Services.ComparisonSeverity.Success)
+                                    {
+                                        <span class="badge bg-success">
+                                            ✓ Conforme
+                                        </span>
+                                    }
+                                    else if (item.Status == ComexTool.Services.ComparisonSeverity.Danger)
+                                    {
+                                        <span class="badge bg-danger">
+                                            ✗ DIVERGÊNCIA
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            ! Apenas 1 Doc
+                                        </span>
+                                    }
+                                    <div class="small text-muted mt-1" style="font-size: 0.75rem;">@item.DetalheStatus</div>
+                                </td>
+                                @foreach (var d in docs)
+                                {
+                                    var docKey = $"{d.Type} ({d.FileName})";
+                                    item.ValoresPorDocumento.TryGetValue(docKey, out var valor);
+
+                                    <td class="text-center">
+                                        @if (!string.IsNullOrWhiteSpace(valor))
+                                        {
+                                            <span class="fw-bold">@valor</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small fst-italic">—</span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        Adicione ao menos dois documentos a este processo para visualizar o comparativo e validação cruzada entre Fatura, Packing List, CRT, NF-e, Certificado de Origem, etc.
+    </div>
+}
+
+@* ============ MODAL ANEXAR DOCUMENTO ============ *@
+<div class="modal fade" id="modalAddDoc" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data" asp-page-handler="AddDocument" asp-route-id="@proc.Id">
+                <div class="modal-header">
+                    <h5 class="modal-title">Anexar Documento ao Processo @proc.NumeroProcesso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tipo do Documento</label>
+                        <select asp-for="NewDocType" class="form-select" required>
+                            @foreach (var t in Enum.GetValues<ComexTool.Models.DocumentType>())
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Arquivo (PDF ou Imagem)</label>
+                        <input asp-for="NewDocFile" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.tif" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Anexar e Analisar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

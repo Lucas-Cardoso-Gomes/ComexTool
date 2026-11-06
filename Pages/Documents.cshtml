@@ -7,9 +7,12 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">Documentos Cadastrados</h2>
-        <span class="text-muted small">Todos os documentos analisados e armazenados no banco</span>
+        <span class="text-muted small">Todos os documentos analisados individualmente</span>
     </div>
-    <a asp-page="/Upload" class="btn btn-primary">+ Novo Upload</a>
+    <div class="d-flex gap-2">
+        <a asp-page="/Processes" class="btn btn-outline-primary">📁 Ver por Processo</a>
+        <a asp-page="/Upload" class="btn btn-primary">+ Novo Upload</a>
+    </div>
 </div>
 
 <div class="card shadow-sm border-0">
@@ -19,6 +22,7 @@
                 <tr>
                     <th>Tipo</th>
                     <th>Arquivo</th>
+                    <th>Processo</th>
                     <th>NCM</th>
                     <th>Incoterm</th>
                     <th>Valor / Moeda</th>
@@ -39,6 +43,18 @@
                         @if (!string.IsNullOrWhiteSpace(doc.ExtractedText))
                         {
                             <span class="badge bg-info text-dark ms-1" title="Texto extraído com sucesso">Analisado</span>
+                        }
+                    </td>
+                    <td>
+                        @if (doc.Processo != null)
+                        {
+                            <a asp-page="/ProcessDetail" asp-route-id="@doc.Processo.Id" class="badge bg-primary text-decoration-none">
+                                @doc.Processo.NumeroProcesso
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-muted small fst-italic">Avulso</span>
                         }
                     </td>
                     <td>
@@ -73,12 +89,14 @@
                     </td>
                     <td>@doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                     <td class="text-end">
-                        <a asp-page="/DocumentDetail" asp-route-id="@doc.Id" class="btn btn-sm btn-outline-primary me-1">
-                            Ver Análise
+                        <a asp-page="/DocumentDetail" asp-route-id="@doc.Id" class="btn btn-sm btn-outline-primary me-1" title="Visualizar ou Atualizar">
+                            Análise Individual
                         </a>
-                        <a href="/api/documents/download/@doc.Id" class="btn btn-sm btn-outline-secondary" download>
-                            Download
-                        </a>
+                        <form method="post" asp-page-handler="DeleteDocument" asp-route-id="@doc.Id" class="d-inline" onsubmit="return confirm('Apagar este documento permanentemente?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Apagar Documento">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
             }

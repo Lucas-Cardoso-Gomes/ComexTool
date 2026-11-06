@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "THwFQ9vYWcI=",
+  "dgSpecHash": "qAl2kMn83kE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\lucas.cardoso\\.gemini\\antigravity\\scratch\\ComexTool\\ComexTool.csproj",
+  "projectFilePath": "C:\\Users\\lucas.cardoso\\Documents\\GitHub\\ComexTool\\ComexTool.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\lucas.cardoso\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.aspnetcore.authentication.certificate\\8.0.14\\microsoft.aspnetcore.authentication.certificate.8.0.14.nupkg.sha512",
@@ -61,19 +61,19 @@
     "C:\\Users\\lucas.cardoso\\.nuget\\packages\\uglytoad.pdfpig.fonts\\1.7.0-custom-5\\uglytoad.pdfpig.fonts.1.7.0-custom-5.nupkg.sha512",
     "C:\\Users\\lucas.cardoso\\.nuget\\packages\\uglytoad.pdfpig.tokenization\\1.7.0-custom-5\\uglytoad.pdfpig.tokenization.1.7.0-custom-5.nupkg.sha512",
     "C:\\Users\\lucas.cardoso\\.nuget\\packages\\uglytoad.pdfpig.tokens\\1.7.0-custom-5\\uglytoad.pdfpig.tokens.1.7.0-custom-5.nupkg.sha512",
-    "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.33\\microsoft.aspnetcore.app.ref.8.0.33.nupkg.sha512",
-    "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.netcore.app.host.win-arm64\\8.0.33\\microsoft.netcore.app.host.win-arm64.8.0.33.nupkg.sha512",
     "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.33\\microsoft.netcore.app.ref.8.0.33.nupkg.sha512",
-    "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.33\\microsoft.windowsdesktop.app.ref.8.0.33.nupkg.sha512"
+    "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.33\\microsoft.windowsdesktop.app.ref.8.0.33.nupkg.sha512",
+    "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.33\\microsoft.aspnetcore.app.ref.8.0.33.nupkg.sha512",
+    "C:\\Users\\lucas.cardoso\\.nuget\\packages\\microsoft.netcore.app.host.win-arm64\\8.0.33\\microsoft.netcore.app.host.win-arm64.8.0.33.nupkg.sha512"
   ],
   "logs": [
     {
       "code": "NU1603",
       "level": "Warning",
       "message": "ComexTool depende de Tesseract (>= 5.0.0), mas Tesseract 5.0.0 não foi encontrado. Tesseract 5.2.0 foi resolvido em vez disso.",
-      "projectPath": "C:\\Users\\lucas.cardoso\\.gemini\\antigravity\\scratch\\ComexTool\\ComexTool.csproj",
+      "projectPath": "C:\\Users\\lucas.cardoso\\Documents\\GitHub\\ComexTool\\ComexTool.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\lucas.cardoso\\.gemini\\antigravity\\scratch\\ComexTool\\ComexTool.csproj",
+      "filePath": "C:\\Users\\lucas.cardoso\\Documents\\GitHub\\ComexTool\\ComexTool.csproj",
       "libraryId": "Tesseract",
       "targetGraphs": [
         "net8.0"

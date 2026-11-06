@@ -8,15 +8,56 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h3>@doc.FileName</h3>
-        <span class="badge bg-secondary me-2">@doc.Type</span>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h3 class="mb-0">@doc.FileName</h3>
+            <span class="badge bg-secondary">@doc.Type</span>
+            @if (doc.Processo != null)
+            {
+                <a asp-page="/ProcessDetail" asp-route-id="@doc.Processo.Id" class="badge bg-primary text-decoration-none">
+                    📁 Processo: @doc.Processo.NumeroProcesso
+                </a>
+            }
+        </div>
         <span class="text-muted small">Enviado em @doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
     </div>
     <div class="d-flex gap-2">
+        @* Botão Reanalisar *@
+        <form method="post" asp-page-handler="Reanalyze" asp-route-id="@doc.Id" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-success" title="Reexecuta a extração profunda de dados deste documento">
+                <i class="bi bi-arrow-repeat"></i> Reanalisar Documento
+            </button>
+        </form>
+
+        @* Botão Atualizar / Trocar Arquivo *@
+        <button type="button" class="btn btn-sm btn-outline-warning text-dark" data-bs-toggle="modal" data-bs-target="#modalUpdateDoc">
+            <i class="bi bi-pencil-square"></i> Atualizar Documento
+        </button>
+
+        @* Botão Excluir *@
+        <form method="post" asp-page-handler="Delete" asp-route-id="@doc.Id" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir este documento permanentemente?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i> Apagar Documento
+            </button>
+        </form>
+
+        @if (doc.ProcessoId != null)
+        {
+            <a asp-page="/ProcessDetail" asp-route-id="@doc.ProcessoId" class="btn btn-sm btn-outline-primary">
+                📊 Ver Comparativo
+            </a>
+        }
         <a href="/api/documents/download/@doc.Id" class="btn btn-sm btn-outline-secondary" download>Download</a>
-        <a asp-page="/Documents" class="btn btn-sm btn-outline-primary">Voltar</a>
+        <a asp-page="/Documents" class="btn btn-sm btn-outline-secondary">Lista</a>
     </div>
 </div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.AlertClass ?? "alert-info") alert-dismissible fade show" role="alert">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
 @if (data == null)
 {
@@ -35,23 +76,23 @@ else
                 <div class="card-body p-3">
                     @await Html.PartialAsync("_FieldRow", ("Nº Documento", data.NumeroDocumento))
                     @await Html.PartialAsync("_FieldRow", ("Data Emissão", data.DataEmissao))
-                    @await Html.PartialAsync("_FieldRow", ("NCM", data.NCM))
+                    @await Html.PartialAsync("_FieldRow", ("NCM Consolidado", data.NCM))
                     @await Html.PartialAsync("_FieldRow", ("Incoterm", data.Incoterm))
                     @await Html.PartialAsync("_FieldRow", ("Moeda", data.Moeda))
                     @await Html.PartialAsync("_FieldRow", ("Valor Total", data.ValorTotal))
-                    @await Html.PartialAsync("_FieldRow", ("Peso Bruto", data.PesoBruto))
-                    @await Html.PartialAsync("_FieldRow", ("Peso Líquido", data.PesoLiquido))
-                    @await Html.PartialAsync("_FieldRow", ("Volume (m³)", data.VolumeTotalM3))
+                    @await Html.PartialAsync("_FieldRow", ("Peso Bruto Total", data.PesoBruto))
+                    @await Html.PartialAsync("_FieldRow", ("Peso Líquido Total", data.PesoLiquido))
+                    @await Html.PartialAsync("_FieldRow", ("Volume Total (m³)", data.VolumeTotalM3))
                 </div>
             </div>
         </div>
 
-        @* ============ EXPORTADOR ============ *@
+        @* ============ EXPORTADOR / REMETENTE ============ *@
         @if (data.Exportador != null)
         {
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-success text-white fw-semibold">Exportador / Remetente</div>
+                    <div class="card-header bg-success text-white fw-semibold">Exportador / Remetente / Fabricante / Vendedor</div>
                     <div class="card-body p-3">
                         @await Html.PartialAsync("_ParticipanteCard", data.Exportador)
                     </div>
@@ -59,7 +100,7 @@ else
             </div>
         }
 
-        @* ============ IMPORTADOR ============ *@
+        @* ============ IMPORTADOR / COMPRADOR ============ *@
         @if (data.Importador != null)
         {
             <div class="col-md-6">
@@ -85,48 +126,125 @@ else
             </div>
         }
 
-        @* ============ TRANSPORTADOR ============ *@
-        @if (data.Transportador != null)
+        @* ============ NOTIFY PARTY ============ *@
+        @if (data.NotifyParty != null)
         {
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-warning text-dark fw-semibold">Transportador</div>
+                    <div class="card-header bg-secondary text-white fw-semibold">Parte a Notificar (Notify Party)</div>
                     <div class="card-body p-3">
-                        @await Html.PartialAsync("_ParticipanteCard", data.Transportador)
-                        @await Html.PartialAsync("_FieldRow", ("Placa Caminhão", data.Transportador.PlacaCaminhao))
-                        @await Html.PartialAsync("_FieldRow", ("Placa Reboque", data.Transportador.PlacaReboque))
-                        @await Html.PartialAsync("_FieldRow", ("ANTT", data.Transportador.RegistroANTT))
+                        @await Html.PartialAsync("_ParticipanteCard", data.NotifyParty)
                     </div>
                 </div>
             </div>
         }
 
-        @* ============ NF-e ============ *@
+        @* ============ TRANSPORTADOR E VEÍCULO ============ *@
+        @if (data.Transportador != null)
+        {
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-warning text-dark fw-semibold">Transportador e Veículo</div>
+                    <div class="card-body p-3">
+                        @await Html.PartialAsync("_ParticipanteCard", data.Transportador)
+                        <hr class="my-2" />
+                        <h6 class="text-muted small fw-bold">DADOS DO VEÍCULO E LICENÇAS</h6>
+                        @await Html.PartialAsync("_FieldRow", ("Placa Caminhão/Trator", data.Transportador.PlacaCaminhao))
+                        @await Html.PartialAsync("_FieldRow", ("Placa Reboque/Semi", data.Transportador.PlacaReboque))
+                        @await Html.PartialAsync("_FieldRow", ("Marca do Veículo", data.Transportador.MarcaVeiculo))
+                        @await Html.PartialAsync("_FieldRow", ("Nº do Chassi", data.Transportador.NumeroChassi))
+                        @await Html.PartialAsync("_FieldRow", ("Capacidade Tração", data.Transportador.CapacidadeTracao))
+                        @await Html.PartialAsync("_FieldRow", ("Ano Fabricação", data.Transportador.AnoFabricacao))
+                        @await Html.PartialAsync("_FieldRow", ("Tara Cavalo (kg)", data.Transportador.TaraCavalo))
+                        @await Html.PartialAsync("_FieldRow", ("Tara Carreta (kg)", data.Transportador.TaraCarreta))
+                        @await Html.PartialAsync("_FieldRow", ("Registro ANTT", data.Transportador.RegistroANTT))
+                        @await Html.PartialAsync("_FieldRow", ("Vencimento ANTT", data.Transportador.VencimentoANTT))
+                        @await Html.PartialAsync("_FieldRow", ("Licença Originária", data.Transportador.LicencaOrigem))
+                        @await Html.PartialAsync("_FieldRow", ("Venc. Licença", data.Transportador.VencimentoLicencaOrigem))
+                        @await Html.PartialAsync("_FieldRow", ("Apólice Seguro Carga", data.Transportador.ApoliceSeguroCarga))
+                        @await Html.PartialAsync("_FieldRow", ("Venc. Apólice", data.Transportador.VencimentoApoliceSeguro))
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ============ CONDUTOR E DESPACHANTE ============ *@
+        @if (!string.IsNullOrWhiteSpace(data.CondutorNome) || !string.IsNullOrWhiteSpace(data.DespachanteNome))
+        {
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-dark text-white fw-semibold">Condutor e Despachante Aduaneiro</div>
+                    <div class="card-body p-3">
+                        <h6 class="text-muted small fw-bold">CONDUTOR DO VEÍCULO</h6>
+                        @await Html.PartialAsync("_FieldRow", ("Nome Completo", data.CondutorNome))
+                        @await Html.PartialAsync("_FieldRow", ("CPF", data.CondutorCpf))
+                        
+                        <hr class="my-2" />
+                        <h6 class="text-muted small fw-bold">DESPACHANTE ADUANEIRO / DECLARANTE</h6>
+                        @await Html.PartialAsync("_FieldRow", ("Nome", data.DespachanteNome))
+                        @await Html.PartialAsync("_FieldRow", ("CPF", data.DespachanteCpf))
+                        @await Html.PartialAsync("_FieldRow", ("Nº Registro Profissional", data.DespachanteRegistro))
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ============ NOTA FISCAL ELETRÔNICA (NF-e / DANFE) ============ *@
         @if (data.Nfe != null)
         {
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-dark text-white fw-semibold">Nota Fiscal Eletrônica (NF-e)</div>
+                    <div class="card-header bg-dark text-white fw-semibold">Nota Fiscal Eletrônica (NF-e / DANFE)</div>
                     <div class="card-body p-3">
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Identificação da NF-e</h6>
                                 @await Html.PartialAsync("_FieldRow", ("Chave de Acesso", data.Nfe.ChaveAcesso))
                                 @await Html.PartialAsync("_FieldRow", ("Número NF", data.Nfe.NumeroNF))
                                 @await Html.PartialAsync("_FieldRow", ("Série", data.Nfe.Serie))
+                                @await Html.PartialAsync("_FieldRow", ("Folha", data.Nfe.Folha))
+                                @await Html.PartialAsync("_FieldRow", ("Tipo Operação", data.Nfe.TipoOperacao != null ? (data.Nfe.TipoOperacao == "1" ? "1 - Saída" : "0 - Entrada") : null))
                                 @await Html.PartialAsync("_FieldRow", ("Natureza Operação", data.Nfe.NaturezaOperacao))
-                                @await Html.PartialAsync("_FieldRow", ("Data Emissão", data.Nfe.DataEmissao))
                                 @await Html.PartialAsync("_FieldRow", ("Protocolo Autorização", data.Nfe.ProtocoloAutorizacao))
+                                @await Html.PartialAsync("_FieldRow", ("Data/Hora Autorização", data.Nfe.DataHoraAutorizacao))
+                                @await Html.PartialAsync("_FieldRow", ("Data Emissão", data.Nfe.DataEmissao))
+                                @await Html.PartialAsync("_FieldRow", ("Data Saída/Entrada", data.Nfe.DataSaidaEntrada))
+                                @await Html.PartialAsync("_FieldRow", ("Hora Saída", data.Nfe.HoraSaida))
                             </div>
-                            <div class="col-md-6">
-                                @await Html.PartialAsync("_FieldRow", ("Base Cálculo ICMS", data.Nfe.BaseCalculoICMS))
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Totais e Impostos</h6>
+                                @await Html.PartialAsync("_FieldRow", ("BC ICMS", data.Nfe.BaseCalculoICMS))
                                 @await Html.PartialAsync("_FieldRow", ("Valor ICMS", data.Nfe.ValorICMS))
-                                @await Html.PartialAsync("_FieldRow", ("Valor Total Produtos", data.Nfe.ValorTotalProdutos))
+                                @await Html.PartialAsync("_FieldRow", ("BC ICMS ST", data.Nfe.BaseCalculoICMSST))
+                                @await Html.PartialAsync("_FieldRow", ("Valor ICMS ST", data.Nfe.ValorICMSST))
+                                @await Html.PartialAsync("_FieldRow", ("Total Produtos", data.Nfe.ValorTotalProdutos))
                                 @await Html.PartialAsync("_FieldRow", ("Valor Frete", data.Nfe.ValorFrete))
+                                @await Html.PartialAsync("_FieldRow", ("Valor Seguro", data.Nfe.ValorSeguro))
+                                @await Html.PartialAsync("_FieldRow", ("Desconto", data.Nfe.Desconto))
+                                @await Html.PartialAsync("_FieldRow", ("Outras Despesas", data.Nfe.OutrasDespesas))
                                 @await Html.PartialAsync("_FieldRow", ("Valor IPI", data.Nfe.ValorIPI))
                                 @await Html.PartialAsync("_FieldRow", ("Valor Total NF", data.Nfe.ValorTotalNF))
-                                @await Html.PartialAsync("_FieldRow", ("Peso Bruto", data.Nfe.PesoBruto))
-                                @await Html.PartialAsync("_FieldRow", ("Peso Líquido", data.Nfe.PesoLiquido))
                             </div>
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Transporte na NF-e</h6>
+                                @await Html.PartialAsync("_FieldRow", ("Modal Frete", data.Nfe.ModalFrete))
+                                @await Html.PartialAsync("_FieldRow", ("Código ANTT", data.Nfe.CodigoANTT))
+                                @await Html.PartialAsync("_FieldRow", ("Placa Veículo", data.Nfe.PlacaVeiculo))
+                                @await Html.PartialAsync("_FieldRow", ("UF Placa", data.Nfe.UFPlaca))
+                                @await Html.PartialAsync("_FieldRow", ("Qtd Volumes", data.Nfe.QtdVolumes))
+                                @await Html.PartialAsync("_FieldRow", ("Espécie Volumes", data.Nfe.EspecieVolumes))
+                                @await Html.PartialAsync("_FieldRow", ("Marca", data.Nfe.MarcaVolumes))
+                                @await Html.PartialAsync("_FieldRow", ("Numeração", data.Nfe.NumeracaoVolumes))
+                                @await Html.PartialAsync("_FieldRow", ("Peso Bruto (kg)", data.Nfe.PesoBruto))
+                                @await Html.PartialAsync("_FieldRow", ("Peso Líquido (kg)", data.Nfe.PesoLiquido))
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(data.Nfe.Observacoes))
+                            {
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-1">Dados Adicionais / Observações Fiscais</h6>
+                                    <div class="bg-light p-2 rounded small text-break">@data.Nfe.Observacoes</div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -138,26 +256,40 @@ else
         {
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-dark text-white fw-semibold">Fatura Comercial</div>
+                    <div class="card-header bg-dark text-white fw-semibold">Fatura Comercial (Commercial Invoice)</div>
                     <div class="card-body p-3">
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Identificação & Prazos</h6>
                                 @await Html.PartialAsync("_FieldRow", ("Nº Fatura", data.FaturaComercial.NumeroFatura))
                                 @await Html.PartialAsync("_FieldRow", ("Data Fatura", data.FaturaComercial.DataFatura))
                                 @await Html.PartialAsync("_FieldRow", ("Data Embarque", data.FaturaComercial.DataEmbarque))
-                                @await Html.PartialAsync("_FieldRow", ("Incoterm", data.FaturaComercial.Incoterm))
-                                @await Html.PartialAsync("_FieldRow", ("Cond. Pagamento", data.FaturaComercial.CondicoesPagamento))
-                                @await Html.PartialAsync("_FieldRow", ("Origem", data.FaturaComercial.OrigemEmbarque))
-                                @await Html.PartialAsync("_FieldRow", ("Destino", data.FaturaComercial.DestinoFinal))
+                                @await Html.PartialAsync("_FieldRow", ("Condições Pagamento", data.FaturaComercial.CondicoesPagamento))
                             </div>
-                            <div class="col-md-6">
-                                @await Html.PartialAsync("_FieldRow", ("Moeda", data.FaturaComercial.MoedaOperacao))
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Logística & Embarque</h6>
+                                @await Html.PartialAsync("_FieldRow", ("Incoterm 2020", data.FaturaComercial.Incoterm))
+                                @await Html.PartialAsync("_FieldRow", ("Local de Entrega", data.FaturaComercial.LocalEntrega))
+                                @await Html.PartialAsync("_FieldRow", ("Origem / Porto Carga", data.FaturaComercial.OrigemEmbarque))
+                                @await Html.PartialAsync("_FieldRow", ("Destino Final", data.FaturaComercial.DestinoFinal))
+                                @await Html.PartialAsync("_FieldRow", ("Meio de Transporte / Buque", data.FaturaComercial.MeioTransporte))
+                                @await Html.PartialAsync("_FieldRow", ("Marcas Mercadoria", data.FaturaComercial.MarcasMercadoria))
+                                @await Html.PartialAsync("_FieldRow", ("Tipo Embalagem / Bultos", data.FaturaComercial.TipoEmbalagem))
+                                @await Html.PartialAsync("_FieldRow", ("Nº Container / Remessa", data.FaturaComercial.NumeroContainer))
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Valores, Moedas & Conversões</h6>
+                                @await Html.PartialAsync("_FieldRow", ("Moeda Operação", data.FaturaComercial.MoedaOperacao))
+                                @await Html.PartialAsync("_FieldRow", ("Moedas Conversão", data.FaturaComercial.MoedasConversao))
                                 @await Html.PartialAsync("_FieldRow", ("Taxa Câmbio", data.FaturaComercial.TaxaCambio))
-                                @await Html.PartialAsync("_FieldRow", ("Meio Transporte", data.FaturaComercial.MeioTransporte))
-                                @await Html.PartialAsync("_FieldRow", ("Container", data.FaturaComercial.NumeroContainer))
-                                @await Html.PartialAsync("_FieldRow", ("Valor Total", data.FaturaComercial.ValorTotalFatura))
+                                @await Html.PartialAsync("_FieldRow", ("Data Cotização", data.FaturaComercial.DataCotizacao))
+                                @await Html.PartialAsync("_FieldRow", ("Valor FCA", data.FaturaComercial.ValorFCA))
                                 @await Html.PartialAsync("_FieldRow", ("Valor Frete", data.FaturaComercial.ValorFrete))
                                 @await Html.PartialAsync("_FieldRow", ("Valor Seguro", data.FaturaComercial.ValorSeguro))
+                                @await Html.PartialAsync("_FieldRow", ("Valor Total Fatura", data.FaturaComercial.ValorTotalFatura))
+                                @await Html.PartialAsync("_FieldRow", ("Total Peso Neto", data.FaturaComercial.TotalPesoNeto))
+                                @await Html.PartialAsync("_FieldRow", ("Total Peso Bruto", data.FaturaComercial.TotalPesoBruto))
+                                @await Html.PartialAsync("_FieldRow", ("Volume em M³", data.FaturaComercial.VolumeM3))
                             </div>
                         </div>
                     </div>
@@ -170,21 +302,39 @@ else
         {
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-dark text-white fw-semibold">DU-E</div>
+                    <div class="card-header bg-dark text-white fw-semibold">Declaração Única de Exportação (DU-E)</div>
                     <div class="card-body p-3">
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Controle e Identificação</h6>
                                 @await Html.PartialAsync("_FieldRow", ("Nº DU-E", data.Due.NumeroDUE))
                                 @await Html.PartialAsync("_FieldRow", ("RUC", data.Due.RUC))
-                                @await Html.PartialAsync("_FieldRow", ("Forma Exportação", data.Due.FormaExportacao))
-                                @await Html.PartialAsync("_FieldRow", ("País Importador", data.Due.PaisImportador))
+                                @await Html.PartialAsync("_FieldRow", ("Chave de Acesso", data.Due.ChaveAcesso))
+                                @await Html.PartialAsync("_FieldRow", ("Ctrl Aduaneiro", data.Due.SituacaoControleAduaneiro))
+                                @await Html.PartialAsync("_FieldRow", ("Ctrl Administrativo", data.Due.SituacaoControleAdministrativo))
+                                @await Html.PartialAsync("_FieldRow", ("Ctrl Carga", data.Due.SituacaoControleCarga))
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Informações Operacionais</h6>
+                                @await Html.PartialAsync("_FieldRow", ("Forma Exportação", data.Due.FormaExportacao))
+                                @await Html.PartialAsync("_FieldRow", ("Doc Fiscal", data.Due.TipoDocumentoFiscal))
+                                @await Html.PartialAsync("_FieldRow", ("País Importador", data.Due.PaisImportador))
                                 @await Html.PartialAsync("_FieldRow", ("Moeda Negociação", data.Due.MoedaNegociacao))
                                 @await Html.PartialAsync("_FieldRow", ("VMLE", data.Due.VMLE))
                                 @await Html.PartialAsync("_FieldRow", ("VMCV", data.Due.VMCV))
-                                @await Html.PartialAsync("_FieldRow", ("Valor Total R$", data.Due.ValorTotalReais))
-                                @await Html.PartialAsync("_FieldRow", ("Peso Líquido", data.Due.PesoLiquidoTotal))
+                                @await Html.PartialAsync("_FieldRow", ("Total Mercadorias (R$)", data.Due.ValorTotalReais))
+                                @await Html.PartialAsync("_FieldRow", ("Peso Líquido Total", data.Due.PesoLiquidoTotal))
+                                @await Html.PartialAsync("_FieldRow", ("Benefícios OEA", data.Due.BeneficiosOEA))
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Geolocalização & Recintos</h6>
+                                @await Html.PartialAsync("_FieldRow", ("Recinto Despacho", data.Due.LocalDespachoRecinto))
+                                @await Html.PartialAsync("_FieldRow", ("Código RFB Despacho", data.Due.LocalDespachoCodigoRFB))
+                                @await Html.PartialAsync("_FieldRow", ("Coordenadas Despacho", data.Due.LocalDespachoCoordenadas))
+                                @await Html.PartialAsync("_FieldRow", ("Recinto Embarque", data.Due.LocalEmbarqueRecinto))
+                                @await Html.PartialAsync("_FieldRow", ("Código RFB Embarque", data.Due.LocalEmbarqueCodigoRFB))
+                                @await Html.PartialAsync("_FieldRow", ("Coordenadas Embarque", data.Due.LocalEmbarqueCoordenadas))
+                                @await Html.PartialAsync("_FieldRow", ("NFs Instrutivas", data.Due.NotasFiscaisInstrutivas))
                             </div>
                         </div>
                     </div>
@@ -197,21 +347,38 @@ else
         {
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-dark text-white fw-semibold">CRT / MIC-DTA</div>
+                    <div class="card-header bg-dark text-white fw-semibold">Transporte Terrestre: CRT e MIC/DTA</div>
                     <div class="card-body p-3">
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Trânsito Aduaneiro & Rota</h6>
                                 @await Html.PartialAsync("_FieldRow", ("Nº CRT", data.Crt.NumeroCRT))
                                 @await Html.PartialAsync("_FieldRow", ("Nº MIC/DTA", data.Crt.NumeroMICDTA))
-                                @await Html.PartialAsync("_FieldRow", ("Destino", data.Crt.CidadeDestino))
-                                @await Html.PartialAsync("_FieldRow", ("País Destino", data.Crt.PaisDestino))
+                                @await Html.PartialAsync("_FieldRow", ("Local/País Emissão", $"{data.Crt.LocalEmissao} {data.Crt.PaisEmissao}".Trim()))
+                                @await Html.PartialAsync("_FieldRow", ("Aduana Partida", $"{data.Crt.AlfandegaPartida} ({data.Crt.CidadePartida})".Trim()))
+                                @await Html.PartialAsync("_FieldRow", ("Destino Final", $"{data.Crt.CidadeDestino} - {data.Crt.PaisDestino}".Trim()))
+                                @await Html.PartialAsync("_FieldRow", ("Aduana Destino", data.Crt.AlfandegaDestino))
+                                @await Html.PartialAsync("_FieldRow", ("Data/Local Carga", $"{data.Crt.DataCarga} {data.Crt.LocalCarga}".Trim()))
+                                @await Html.PartialAsync("_FieldRow", ("Prazo e Rota", $"{data.Crt.PrazoTransporte} / {data.Crt.RotaTransporte}".Trim()))
+                                @await Html.PartialAsync("_FieldRow", ("Pontos de Fronteira", data.Crt.PontosFronteira))
                             </div>
-                            <div class="col-md-6">
-                                @await Html.PartialAsync("_FieldRow", ("Valor FOB", data.Crt.ValorFOB))
-                                @await Html.PartialAsync("_FieldRow", ("Frete Internacional", data.Crt.ValorFreteInternacional))
-                                @await Html.PartialAsync("_FieldRow", ("Peso Bruto", data.Crt.PesoBruto))
-                                @await Html.PartialAsync("_FieldRow", ("Peso Líquido", data.Crt.PesoLiquido))
-                                @await Html.PartialAsync("_FieldRow", ("Lacres", data.Crt.LacresCarga))
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Valores e Fretes</h6>
+                                @await Html.PartialAsync("_FieldRow", ("Valor FOT/FOB", $"{data.Crt.ValorFOT ?? data.Crt.ValorFOB}"))
+                                @await Html.PartialAsync("_FieldRow", ("Frete Internacional", $"{data.Crt.MoedaFrete ?? ""} {data.Crt.ValorFreteInternacional}".Trim()))
+                                @await Html.PartialAsync("_FieldRow", ("Valor do Seguro", $"{data.Crt.MoedaSeguro ?? ""} {data.Crt.ValorSeguro}".Trim()))
+                                @await Html.PartialAsync("_FieldRow", ("Montante Remetente", data.Crt.MontanteRemetente))
+                                @await Html.PartialAsync("_FieldRow", ("Montante Destinatário", data.Crt.MontanteDestinatario))
+                                @await Html.PartialAsync("_FieldRow", ("Valor Mercadorias Cond. Venda", data.Crt.ValorMercadoriasCondicaoVenda))
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-primary border-bottom pb-1">Controle da Carga Transportada</h6>
+                                @await Html.PartialAsync("_FieldRow", ("Qtd Volumes", data.Crt.QtdVolumes))
+                                @await Html.PartialAsync("_FieldRow", ("Tipo de Volumes", data.Crt.TipoVolumes))
+                                @await Html.PartialAsync("_FieldRow", ("Peso Bruto (kg)", data.Crt.PesoBruto))
+                                @await Html.PartialAsync("_FieldRow", ("Peso Líquido (kg)", data.Crt.PesoLiquido))
+                                @await Html.PartialAsync("_FieldRow", ("Volume em m³", data.Crt.VolumeM3))
+                                @await Html.PartialAsync("_FieldRow", ("Lacres / Precintas", data.Crt.LacresCarga))
                             </div>
                         </div>
                     </div>
@@ -219,41 +386,54 @@ else
             </div>
         }
 
-        @* ============ CERTIFICADO DE ORIGEM ============ *@
+        @* ============ CERTIFICADO DE ORIGEM (ACE 35) ============ *@
         @if (data.CertificadoOrigem != null)
         {
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-dark text-white fw-semibold">Certificado de Origem</div>
+                    <div class="card-header bg-dark text-white fw-semibold">Certificado de Origem (ACE 35)</div>
                     <div class="card-body p-3">
+                        <h6 class="text-primary border-bottom pb-1">Identificação & Acordo</h6>
                         @await Html.PartialAsync("_FieldRow", ("Nº Certificado", data.CertificadoOrigem.NumeroCertificado))
                         @await Html.PartialAsync("_FieldRow", ("Entidade Emissora", data.CertificadoOrigem.EntidadeEmissora))
-                        @await Html.PartialAsync("_FieldRow", ("Acordo", data.CertificadoOrigem.AcordoComercial))
+                        @await Html.PartialAsync("_FieldRow", ("Acordo Comercial", data.CertificadoOrigem.AcordoComercial))
+                        
+                        <h6 class="text-primary border-bottom pb-1 mt-3">Vínculo com Fatura & Rota</h6>
+                        @await Html.PartialAsync("_FieldRow", ("Nº Fatura Comercial", data.CertificadoOrigem.NumeroFatura))
+                        @await Html.PartialAsync("_FieldRow", ("Data Fatura", data.CertificadoOrigem.DataFatura))
+                        @await Html.PartialAsync("_FieldRow", ("Porto/Lugar Embarque", data.CertificadoOrigem.PortoEmbarque))
                         @await Html.PartialAsync("_FieldRow", ("País Destino", data.CertificadoOrigem.PaisDestino))
+
+                        <h6 class="text-primary border-bottom pb-1 mt-3">Regras de Origem & Conversão</h6>
+                        @await Html.PartialAsync("_FieldRow", ("Enquadramento Normas", data.CertificadoOrigem.EnquadramentoOrigem))
+                        @await Html.PartialAsync("_FieldRow", ("Valor FOB em US$", data.CertificadoOrigem.ValorMoedaDestino))
                     </div>
                 </div>
             </div>
         }
 
-        @* ============ PACKING LIST ============ *@
+        @* ============ PACKING LIST, RASTREABILIDADE & LIVRE VENDA ============ *@
         @if (data.PackingList != null)
         {
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-dark text-white fw-semibold">Packing List / Rastreabilidade</div>
+                    <div class="card-header bg-dark text-white fw-semibold">Packing List, Rastreabilidade & Livre Venda</div>
                     <div class="card-body p-3">
-                        @await Html.PartialAsync("_FieldRow", ("SKU / Código", data.PackingList.SKU))
-                        @await Html.PartialAsync("_FieldRow", ("Lote", data.PackingList.NumeroLote))
-                        @await Html.PartialAsync("_FieldRow", ("Fabricação", data.PackingList.DataFabricacao))
-                        @await Html.PartialAsync("_FieldRow", ("Validade", data.PackingList.DataValidade))
-                        @await Html.PartialAsync("_FieldRow", ("SIF", data.PackingList.NumeroSIF))
-                        @await Html.PartialAsync("_FieldRow", ("Calibre", data.PackingList.Calibre))
+                        <h6 class="text-primary border-bottom pb-1">Rastreabilidade do Produto</h6>
+                        @await Html.PartialAsync("_FieldRow", ("SKU / Código Fabricante", data.PackingList.SKU))
+                        @await Html.PartialAsync("_FieldRow", ("Número do Lote", data.PackingList.NumeroLote))
+                        @await Html.PartialAsync("_FieldRow", ("Data Fabricação / Abate", data.PackingList.DataFabricacao))
+                        @await Html.PartialAsync("_FieldRow", ("Data Validade", data.PackingList.DataValidade))
+                        @await Html.PartialAsync("_FieldRow", ("Nº SIF", data.PackingList.NumeroSIF))
+                        @await Html.PartialAsync("_FieldRow", ("Total Caixas / Volumes", data.PackingList.TotalCaixasVolumes))
+                        @await Html.PartialAsync("_FieldRow", ("Peso Líquido Total", data.PackingList.PesoLiquidoTotal))
+                        @await Html.PartialAsync("_FieldRow", ("Peso Bruto Total", data.PackingList.PesoBrutoTotal))
                     </div>
                 </div>
             </div>
         }
 
-        @* ============ ITENS ============ *@
+        @* ============ ITENS DE MERCADORIA ============ *@
         @if (data.Itens != null && data.Itens.Count > 0)
         {
             <div class="col-12">
@@ -261,14 +441,17 @@ else
                     <div class="card-header bg-dark text-white fw-semibold">Itens de Mercadoria (@data.Itens.Count encontrados)</div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
+                            <table class="table table-sm table-hover align-middle mb-0">
                                 <thead class="table-light">
                                     <tr>
                                         <th>#</th>
-                                        <th>NCM</th>
-                                        <th>Descrição</th>
-                                        <th>Unidade</th>
-                                        <th>CFOP</th>
+                                        <th>NCM / NALADI</th>
+                                        <th>Descrição do Produto</th>
+                                        <th>UN</th>
+                                        <th>Qtd</th>
+                                        <th>P. Líq</th>
+                                        <th>P. Bruto</th>
+                                        <th>Preço Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -276,32 +459,19 @@ else
                                 {
                                     var item = data.Itens[i];
                                     <tr>
-                                        <td>@(i + 1)</td>
-                                        <td><code>@item.NCM</code></td>
-                                        <td>@(item.DescricaoProduto ?? "—")</td>
+                                        <td>@(item.NumeroOrdem ?? (i + 1))</td>
+                                        <td><code>@(item.NCM ?? item.NALADI ?? "—")</code></td>
+                                        <td><div class="fw-semibold">@(item.DescricaoProduto ?? "—")</div></td>
                                         <td>@(item.UnidadeMedida ?? "—")</td>
-                                        <td>@(item.CFOP ?? "—")</td>
+                                        <td>@(item.Quantidade ?? "—")</td>
+                                        <td>@(item.PesoLiquido ?? "—")</td>
+                                        <td>@(item.PesoBruto ?? "—")</td>
+                                        <td class="fw-semibold">@(item.PrecoTotal ?? "—")</td>
                                     </tr>
                                 }
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-        @* ============ CONDUTOR / DESPACHANTE ============ *@
-        @if (!string.IsNullOrWhiteSpace(data.CondutorNome) || !string.IsNullOrWhiteSpace(data.DespachanteNome))
-        {
-            <div class="col-md-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-secondary text-white fw-semibold">Outros Participantes</div>
-                    <div class="card-body p-3">
-                        @await Html.PartialAsync("_FieldRow", ("Condutor", data.CondutorNome))
-                        @await Html.PartialAsync("_FieldRow", ("CPF Condutor", data.CondutorCpf))
-                        @await Html.PartialAsync("_FieldRow", ("Despachante", data.DespachanteNome))
-                        @await Html.PartialAsync("_FieldRow", ("CPF Despachante", data.DespachanteCpf))
                     </div>
                 </div>
             </div>
@@ -320,3 +490,38 @@ else
         </div>
     }
 }
+
+@* ============ MODAL ATUALIZAR DOCUMENTO ============ *@
+<div class="modal fade" id="modalUpdateDoc" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data" asp-page-handler="UpdateDocument" asp-route-id="@doc.Id">
+                <div class="modal-header">
+                    <h5 class="modal-title">Atualizar / Reclassificar Documento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tipo do Documento</label>
+                        <select asp-for="UpdatedType" class="form-select" required>
+                            @foreach (var t in Enum.GetValues<ComexTool.Models.DocumentType>())
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                        <div class="form-text">Altere o tipo para forçar uma nova extração sob o modelo correto.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Substituir Arquivo (Opcional)</label>
+                        <input asp-for="ReplaceFile" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.tif" />
+                        <div class="form-text">Deixe em branco se deseja apenas reanalisar o arquivo atual.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar e Reanalisar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

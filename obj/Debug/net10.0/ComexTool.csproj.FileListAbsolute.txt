@@ -1,9 +1,0 @@
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.csproj.AssemblyReference.cache
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\rpswa.dswa.cache.json
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.AssemblyInfoInputs.cache
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.AssemblyInfo.cs
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.csproj.CoreCompileInputs.cache
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.MvcApplicationPartsAssemblyInfo.cache
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.RazorAssemblyInfo.cache
-C:\Users\lucas.cardoso\.gemini\antigravity\scratch\ComexTool\obj\Debug\net10.0\ComexTool.RazorAssemblyInfo.cs

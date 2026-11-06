@@ -2945,11 +2945,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\lucas.cardoso\\.gemini\\antigravity\\scratch\\ComexTool\\ComexTool.csproj",
+      "projectUniqueName": "C:\\Users\\lucas.cardoso\\Documents\\GitHub\\ComexTool\\ComexTool.csproj",
       "projectName": "ComexTool",
-      "projectPath": "C:\\Users\\lucas.cardoso\\.gemini\\antigravity\\scratch\\ComexTool\\ComexTool.csproj",
+      "projectPath": "C:\\Users\\lucas.cardoso\\Documents\\GitHub\\ComexTool\\ComexTool.csproj",
       "packagesPath": "C:\\Users\\lucas.cardoso\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\lucas.cardoso\\.gemini\\antigravity\\scratch\\ComexTool\\obj\\",
+      "outputPath": "C:\\Users\\lucas.cardoso\\Documents\\GitHub\\ComexTool\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\lucas.cardoso\\AppData\\Roaming\\NuGet\\NuGet.Config"
