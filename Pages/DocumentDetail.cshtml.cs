@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using ComexTool.Data;
 using ComexTool.Models;
+using System.IO;
 using ComexTool.Services;
 
 namespace ComexTool.Pages;
@@ -66,6 +67,41 @@ public class DocumentDetailModel : PageModel
         return RedirectToPage(new { id });
     }
 
+    // New handler to force OCR re‑run (useful for scanned PDFs or images)
+    public async Task<IActionResult> OnPostReocrAsync(Guid id)
+    {
+        Doc = await _context.Documents
+            .Include(d => d.Processo)
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+        if (Doc == null) return NotFound();
+
+        if (Doc.Content != null && Doc.Content.Length > 0)
+        {
+            var ocrService = new TesseractOcrService();
+            using var ms = new MemoryStream(Doc.Content);
+            var ocrTask = ocrService.ExtractTextAsync(ms);
+            ocrTask.Wait();
+            var ocrText = ocrTask.Result ?? string.Empty;
+
+            // Run normal extraction to populate structured data
+            var (text, data) = _extractor.Extract(Doc.Content, "application/pdf", Doc.FileName);
+            // Prefer longer OCR text if it is better
+            Doc.ExtractedText = ocrText.Length > text.Length ? ocrText : text;
+            Doc.ExtractedData = data;
+            await _context.SaveChangesAsync();
+            Message = "OCR executado e dados atualizados.";
+            AlertClass = "alert-success";
+        }
+        else
+        {
+            Message = "Nenhum conteúdo binário para executar OCR.";
+            AlertClass = "alert-warning";
+        }
+
+        return RedirectToPage(new { id });
+    }
+
     public async Task<IActionResult> OnPostUpdateDocumentAsync(Guid id)
     {
         Doc = await _context.Documents
@@ -90,7 +126,7 @@ public class DocumentDetailModel : PageModel
         }
         else if (Doc.Content != null && Doc.Content.Length > 0)
         {
-            // Reanalisa caso tenha mudado o tipo
+            // Reanalyse caso tenha mudado o tipo
             var (text, data) = _extractor.Extract(Doc.Content, "application/pdf", Doc.FileName);
             Doc.ExtractedText = text;
             Doc.ExtractedData = data;

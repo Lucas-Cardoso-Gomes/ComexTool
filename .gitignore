@@ -4,3 +4,5 @@
 ComexDb.sqlite-shm
 ComexDb.sqlite-wal
 /obj/Debug
+/obj
+/bin

@@ -91,6 +91,7 @@ public class ComexDocumentExtractor
 
     public string ExtractText(byte[] fileBytes, string contentType, string fileName)
     {
+        // If PDF, try PDF text extraction first.
         if (contentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase) ||
             fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
         {
@@ -141,11 +142,39 @@ public class ComexDocumentExtractor
                     sb.AppendLine();
                 }
 
-                return sb.ToString();
+                var extracted = sb.ToString();
+
+                // If extraction yielded little or no text, fall back to OCR.
+                if (string.IsNullOrWhiteSpace(extracted) || extracted.Length < 100)
+                {
+                    try
+                    {
+                        var ocr = new TesseractOcrService();
+                        using var ms = new MemoryStream(fileBytes);
+                        var task = ocr.ExtractTextAsync(ms);
+                        task.Wait();
+                        var ocrText = task.Result;
+                        if (!string.IsNullOrWhiteSpace(ocrText))
+                            return ocrText;
+                    }
+                    catch { /* ignore OCR errors */ }
+                }
+
+                return extracted;
             }
-            catch { return string.Empty; }
+            catch { /* PDF parsing failed – fall back to OCR below */ }
         }
-        return string.Empty;
+
+        // Non‑PDF or fallback: attempt OCR directly (image files or PDFs that failed).
+        try
+        {
+            var ocr = new TesseractOcrService();
+            using var ms = new MemoryStream(fileBytes);
+            var task = ocr.ExtractTextAsync(ms);
+            task.Wait();
+            return task.Result ?? string.Empty;
+        }
+        catch { return string.Empty; }
     }
 
     // ==================== NOTA FISCAL (NF-e / DANFE) ====================
