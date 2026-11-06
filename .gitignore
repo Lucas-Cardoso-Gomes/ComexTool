@@ -6,3 +6,5 @@ ComexDb.sqlite-wal
 /obj/Debug
 /obj
 /bin
+*.sqlite
+ComexDb.sqlite

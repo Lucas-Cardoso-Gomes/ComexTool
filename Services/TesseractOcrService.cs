@@ -12,16 +12,19 @@ namespace ComexTool.Services
 
         public TesseractOcrService()
         {
-            // Initialize TesseractEngine with Portuguese language pack.
-            // If initialization fails, fall back to a no‑op engine.
+            // Try Portuguese first, fallback to English if unavailable.
+            _engine = TryCreateEngine("por") ?? TryCreateEngine("eng");
+        }
+
+        private TesseractEngine? TryCreateEngine(string language)
+        {
             try
             {
-                _engine = new TesseractEngine(TessDataPath, "por", EngineMode.Default);
+                return new TesseractEngine(TessDataPath, language, EngineMode.Default);
             }
-            catch (Exception)
+            catch
             {
-                // Swallow errors; OCR will be disabled.
-                _engine = null;
+                return null;
             }
         }
 
@@ -34,7 +37,6 @@ namespace ComexTool.Services
             if (_engine == null)
                 return string.Empty;
 
-            // Load the image into Pix format.
             using var pix = Pix.LoadFromMemory(ReadAllBytes(imageStream));
             using var page = _engine.Process(pix);
             var text = page.GetText();
@@ -43,7 +45,6 @@ namespace ComexTool.Services
 
         private static byte[] ReadAllBytes(Stream stream)
         {
-            // For simplicity and correctness, read the whole stream into a byte array.
             if (stream is MemoryStream ms)
                 return ms.ToArray();
 
