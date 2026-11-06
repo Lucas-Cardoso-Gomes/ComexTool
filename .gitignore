@@ -1,2 +1,6 @@
 /bin
 /obj
+/obj
+ComexDb.sqlite-shm
+ComexDb.sqlite-wal
+/obj/Debug

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ComexTool")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c77baea0533ae5aae3ea03b066223f765acf7968")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3ced436c3c7564958144842fa663371b2ee0340e")]
 [assembly: System.Reflection.AssemblyProductAttribute("ComexTool")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ComexTool")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
